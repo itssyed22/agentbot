@@ -1,6 +1,3 @@
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
-});
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -20,19 +17,19 @@ const FAQ = `
 `;
 
 app.post('/chat', async (req, res) => {
-  const { message } = req.body;
-
-  const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    messages: [
-      { role: 'system', content: `You are a helpful assistant for this business. Answer only based on this info: ${FAQ}. Be friendly and brief.` },
-      { role: 'user', content: message }
-    ]
-  });
-
-  res.json({ reply: response.choices[0].message.content });
+  try {
+    const { message } = req.body;
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: `You are a helpful assistant. Answer only based on: ${FAQ}. Be friendly and brief.` },
+        { role: 'user', content: message }
+      ]
+    });
+    res.json({ reply: response.choices[0].message.content });
+  } catch (error) {
+    res.status(500).json({ reply: 'Sorry, something went wrong.' });
+  }
 });
 
-app.listen(process.env.PORT, () => {
-  console.log('Server running on port ' + process.env.PORT);
-});
+module.exports = app;
