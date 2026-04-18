@@ -12,15 +12,42 @@ app.use(cors());
 app.use(express.json());
 
 const FAQ = `
-  We are a dental clinic open Mon-Sat 9am-6pm.
-  Services: checkups $20, cleaning $30, fillings $50.
-  Phone: +92-300-1234567
+CLINIC NAME: Smile Dental Clinic, Karachi Pakistan
+
+SERVICES & PRICES:
+- Dental Checkup: Rs 500
+- Teeth Cleaning: Rs 1,500
+- Tooth Filling: Rs 2,000
+- Tooth Extraction: Rs 1,000
+- Root Canal Treatment: Rs 8,000 - Rs 15,000
+- Teeth Whitening: Rs 5,000
+- Braces Consultation: Free first visit
+- Dental X-Ray: Rs 800
+
+DOCTORS:
+- Dr. Ahmed Khan (Senior Dentist, 15 years experience)
+- Dr. Sara Ali (Orthodontist, Braces Specialist)
+
+LOCATION: Block 5, Clifton, Karachi (near Clifton Bridge)
+
+HOURS:
+- Monday to Saturday: 10am - 8pm
+- Sunday: 11am - 4pm
+- Emergency appointments available
+
+CONTACT: +92-300-1234567 (also on WhatsApp)
+
+PAYMENT: Cash, Easypaisa, JazzCash, Bank Transfer accepted
+
+LANGUAGES: Urdu and English
+
+PARKING: Available outside clinic
 `;
 
-async function saveAppointment(name, email, preferred_time) {
+async function saveAppointment(name, phone, preferred_time) {
   const { error } = await supabase
     .from('appointments')
-    .insert([{ name, email, preferred_time }]);
+    .insert([{ name, email: phone, preferred_time, business: 'smile_dental_clinic' }]);
   if (error) console.error('Supabase error:', error);
 }
 
@@ -33,17 +60,27 @@ app.post('/chat', async (req, res) => {
       messages: [
         {
           role: 'system',
-          content: `You are a helpful assistant for this dental clinic.
-          Business info: ${FAQ}
+          content: `You are a helpful assistant for Smile Dental Clinic in Karachi, Pakistan.
           
-          When a user wants to book an appointment:
-          1. Ask for their name if you don't have it
-          2. Ask for their preferred time if you don't have it
-          3. Ask for their email if you don't have it
-          4. Once you have name, time and email, reply with EXACTLY this format:
-          BOOKING:name=John,time=Monday 3pm,email=john@gmail.com
+          Clinic information: ${FAQ}
           
-          Be friendly and brief in all responses.`
+          IMPORTANT RULES:
+          - Reply in the same language the patient uses (Urdu or English)
+          - If they write in Urdu, reply in Urdu
+          - If they write in English, reply in English
+          - Be warm, friendly and professional
+          - Keep replies short and clear
+          - If asked about prices, always give the price in Pakistani Rupees
+          
+          BOOKING APPOINTMENTS:
+          When a patient wants to book:
+          1. Ask for their name
+          2. Ask for their phone number (for WhatsApp confirmation)
+          3. Ask for preferred day and time
+          4. Once you have all 3, reply with EXACTLY:
+          BOOKING:name=Ahmed,phone=03001234567,time=Saturday 3pm
+          
+          Always end booking with reassurance like "We will confirm your appointment on WhatsApp shortly!"`
         },
         ...history,
         { role: 'user', content: message }
@@ -53,17 +90,17 @@ app.post('/chat', async (req, res) => {
     const reply = response.choices[0].message.content;
 
     if (reply.includes('BOOKING:')) {
-      const bookingData = reply.split('BOOKING:')[1];
+      const bookingData = reply.split('BOOKING:')[1].split('\n')[0];
       const parts = {};
       bookingData.split(',').forEach(part => {
         const [key, value] = part.split('=');
-        parts[key.trim()] = value.trim();
+        if (key && value) parts[key.trim()] = value.trim();
       });
 
-      await saveAppointment(parts.name, parts.email, parts.time);
+      await saveAppointment(parts.name, parts.phone, parts.time);
 
       res.json({
-        reply: `Perfect! Your appointment has been booked for ${parts.time}. We will see you then! If you need to make changes call +92-300-1234567.`,
+        reply: `Shukriya! Aapki appointment book ho gayi hai ${parts.time} ke liye. Hum aapko WhatsApp par confirm kar denge. Koi aur sawaal ho toh zaroor poochein! 😊\n\n(Thank you! Your appointment has been booked for ${parts.time}. We will confirm on WhatsApp shortly!)`,
         booked: true
       });
     } else {
@@ -72,7 +109,7 @@ app.post('/chat', async (req, res) => {
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ reply: 'Sorry, something went wrong.' });
+    res.status(500).json({ reply: 'Sorry, something went wrong. Please call us at +92-300-1234567' });
   }
 });
 

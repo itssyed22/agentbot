@@ -15,15 +15,17 @@
   </style>
 </head>
 <body>
-  <h2>Dental Clinic Assistant</h2>
+  <h2>Smile Dental Clinic - AI Assistant</h2>
   <div id="chat">
-    <div class="msg bot">Hi! I am your dental clinic assistant. How can I help you today?</div>
+    <div class="msg bot">Assalam o Alaikum! Smile Dental Clinic mein khush aamdeed! Main aapki kaise madad kar sakta hoon? 😊 (Welcome! How can I help you today?)</div>
   </div>
   <div id="input-row">
     <input id="msg" placeholder="Type your question..." />
     <button onclick="send()">Send</button>
   </div>
   <script>
+    let history = [];
+
     async function send() {
       const input = document.getElementById('msg');
       const msg = input.value.trim();
@@ -31,15 +33,26 @@
       addMsg(msg, 'user');
       input.value = '';
       addMsg('Typing...', 'bot', 'typing');
+
+      history.push({ role: 'user', content: msg });
+
       const res = await fetch('https://agentbot-chi.vercel.app/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg })
+        body: JSON.stringify({ message: msg, history: history })
       });
       const data = await res.json();
+
       document.getElementById('typing').remove();
       addMsg(data.reply, 'bot');
+
+      history.push({ role: 'assistant', content: data.reply });
+
+      if (data.booked) {
+        history = [];
+      }
     }
+
     function addMsg(text, who, id) {
       const div = document.createElement('div');
       div.className = 'msg ' + who;
@@ -49,6 +62,7 @@
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
     }
+
     document.getElementById('msg').addEventListener('keydown', e => e.key === 'Enter' && send());
   </script>
 </body>
